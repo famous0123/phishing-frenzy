@@ -10,7 +10,7 @@ class CampaignMailer
 	def victims_valid?
 		# make sure we have victims to send to
 		if @victims.empty?
-			@messages << "No Victims to Send To"
+			@messages << "No Victims to Send To\n"
 			return false
 		end
 
@@ -20,7 +20,7 @@ class CampaignMailer
 	def test_victim_valid?
 		# make sure we have test victim to send to
 		if @campaign.test_victim.email_address.empty?
-			@messages << "No Test Victim to Send To"
+			@messages << "No Test Victim to Send To\n"
 			return false
 		end
 	end
@@ -32,35 +32,35 @@ class CampaignMailer
 		if @campaign
 			@template = Template.find_by_id(@campaign.template_id)
 		else
-			@messages << "[-] No Campaign Found"
+			@messages << "[-] No Campaign Found\n"
 			return false
 		end
 
 		# make sure we have email settings
 		unless @campaign.email_settings
-			@messages << "[-] No Email Settings Found"
+			@messages << "[-] No Email Settings Found\n"
 			return false
 		end
 
 		# ensure smtp settings are populated
 		if @campaign.email_settings.smtp_server == ""
-			@messages << "[-] No SMTP Server to send from"
+			@messages << "[-] No SMTP Server to send from\n"
 			return false
 		end
 
 		if @campaign.email_settings.smtp_server_out == ""
-			@messages << "[-] No Outbound SMTP Server to send from"
+			@messages << "[-] No Outbound SMTP Server to send from\n"
 			return false
 		end
 
 		if @campaign.email_settings.smtp_port == ""
-			@messages << "[-] No SMTP Port specified"
+			@messages << "[-] No SMTP Port specified\n"
 			return false
 		end
 
 		# ensure email settings are populated
 		if @campaign.email_settings.from == ""
-			@messages << "[-] No From address specified"
+			@messages << "[-] No From address specified\n"
 			return false
 		end
 
@@ -95,7 +95,7 @@ class CampaignMailer
 		message = []
 
 		# make sure email exists
-		email_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "email", "email.txt")
+		email_location = File.join(Rails.root.to_s, "public", "templates", @template.location, "email", "email.txt")
 		if File.exist?(email_location)
 			email_message = File.open(email_location, 'r')
 		else
@@ -105,8 +105,8 @@ class CampaignMailer
 		# track user clicks?
 		if @campaign.campaign_settings.track_uniq_visitors?
 			# append uniq identifier
-			encode = "#{Base64.encode64(victim.email_address)}"
-			full_url = "#{@campaign.email_settings.phishing_url}?id=#{encode.chomp}"
+			encode = Base64.encode64(victim.email_address).chomp
+			full_url = "#{@campaign.email_settings.phishing_url}?id=#{encode}"
 		else
 			full_url = "#{@campaign.email_settings.phishing_url}"
 		end
@@ -114,15 +114,15 @@ class CampaignMailer
 		# prepare email message
 		email_message.each_line do |line|
 			if line =~ /\#{url}/
-				message << line.gsub(/\#{url}/, "#{full_url}")
+				message << line.gsub(/\#{url}/, full_url)
 			elsif line =~ /\#{to}/
-				message << line.gsub(/\#{to}/, "#{victim.email_address}")
+				message << line.gsub(/\#{to}/, victim.email_address)
 			elsif line =~ /\#{from}/ and line =~ /\#{display_from}/
 				message << line.gsub(/\#{display_from} <\#{from}>/, "#{@campaign.email_settings.display_from} <#{@campaign.email_settings.from}>")
 			elsif line =~ /\#{display_from}/ and not line =~ /\#{from}/
-				message << line.gsub(/\#{display_from}/, "#{@campaign.email_settings.display_from}")
+				message << line.gsub(/\#{display_from}/, @campaign.email_settings.display_from)
 			elsif line =~ /\#{subject}/
-				message << line.gsub(/\#{subject}/, "#{@campaign.email_settings.subject}")
+				message << line.gsub(/\#{subject}/, @campaign.email_settings.subject)
 			elsif line =~ /\#{date}/
 				message << line.gsub(/\#{date}/, Time.now.to_formatted_s(:long_ordinal))
 			else
@@ -144,7 +144,7 @@ class CampaignMailer
 				if sendemail(@campaign.email_settings.smtp_username, @campaign.email_settings.smtp_password, @campaign.email_settings.from, message, victim.email_address, @campaign.email_settings.smtp_port, @campaign.email_settings.smtp_server_out, @campaign.email_settings.smtp_server)
 					@emails_sent += 1
 				else
-					@messages << "[-] Unable to send #{victim.email_address}"
+					@messages << "[-] Unable to send #{victim.email_address}\n"
 				end
 			end
 		else
@@ -206,10 +206,10 @@ class CampaignMailer
 			@messages << "[-] SMTP Timeout Sending to #{email} using #{smtp_address}:#{port} with SSL\n"
 			return false
 		rescue Net::SMTPAuthenticationError => e
-			@messages << "[-] Invalid Username and or Password"
+			@messages << "[-] Invalid Username and or Password\n"
 			return false
 		rescue => e
-			@messages << "[-] #{e} when sending to #{email} using SSL through #{smtp_address}:#{port}"
+			@messages << "[-] #{e} when sending to #{email} using SSL through #{smtp_address}:#{port}\n"
 			return false
 		ensure
 			log_smtp_communication(response, email, from, e)
