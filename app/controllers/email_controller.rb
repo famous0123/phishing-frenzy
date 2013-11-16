@@ -11,13 +11,13 @@ class EmailController < ApplicationController
 	@mailer = CampaignMailer.new(@campaign)
 
 		unless @mailer.valid? and not @mailer.test_victim_valid?
-			flash[:notice] = "#{@mailer.messages.join(". ")}"
+			flash[:notice] = @mailer.messages.join(". ")
 			redirect_to(:controller => 'campaigns', :action => 'options', :id => @campaign.id)
 			return false
 		end
 
 		if @mailer.test!
-			flash[:notice] = "#{@mailer.messages.join(". ")}"
+			flash[:notice] = @mailer.messages.join(". ")
 			redirect_to(:controller => 'campaigns', :action => 'options', :id => @campaign.id)
 		else
 			flash[:notice] = "Test email has failed"
@@ -35,7 +35,7 @@ class EmailController < ApplicationController
 		flash[:notice] = "Campaign Launched"
 		render('send')
 	else
-		flash[:notice] = "#{@mailer.messages.join(". ")}"
+		flash[:notice] = @mailer.messages.join(". ")
 		redirect_to(:controller => 'campaigns', :action => 'options', :id => @campaign.id)
 		end
 	end
