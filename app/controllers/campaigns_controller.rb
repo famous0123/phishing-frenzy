@@ -18,34 +18,20 @@ class CampaignsController < ApplicationController
 
 		# determine if apache is running
 		apache_output = GlobalSettings.apache_status
-		if apache_output =~ /pid/
-			@apache = true
-		else
-			@apache = false
-		end
+		@apache = apache_output =~ /pid/ ? true : false
 
 		# determine if any VHOST are configured
 		vhosts_output = `apache2ctl -S`
-		if vhosts_output.blank?
-			@vhosts = []
-		else 
-			@vhosts = vhosts_output.split("\n")[3..20]
-		end
+		@vhosts = vhosts_output.blank? ? [] : vhosts_output.split("\n")[3..20]
+
 		# determine if metasploit is running
 		msf_output = `ps aux | grep msf`
+		@msf = msfoutput =~ /msfconsole/ ? true : false
 		if msf_output =~ /msfconsole/
-			@msf = true
-		else
-			@msf = false
-		end
 
 		# determine if BeeF is running
 		beef_output = `ps aux | grep beef`
-		if beef_output =~ /beef.py/
-			@beef = true
-		else
-			@beef = false
-		end
+		@beef = beef_output =~ /beef.py/ ? true : false
 	end
 
 	def show
