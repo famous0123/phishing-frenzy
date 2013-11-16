@@ -17,21 +17,16 @@ class CampaignsController < ApplicationController
 		@campaigns = Campaign.active.page(params[:page]).per(8)
 
 		# determine if apache is running
-		apache_output = GlobalSettings.apache_status
-		@apache = apache_output =~ /pid/ ? true : false
+		@apache = GlobalSettings.apache_status =~ /pid/ ? true : false
 
 		# determine if any VHOST are configured
-		vhosts_output = `apache2ctl -S`
-		@vhosts = vhosts_output.blank? ? [] : vhosts_output.split("\n")[3..20]
+		@vhosts = `apache2ctl -S`.blank? ? [] : vhosts_output.split("\n")[3..20]
 
 		# determine if metasploit is running
-		msf_output = `ps aux | grep msf`
-		@msf = msfoutput =~ /msfconsole/ ? true : false
-		if msf_output =~ /msfconsole/
+		@msf = `ps aux | grep msf` =~ /msfconsole/ ? true : false
 
 		# determine if BeeF is running
-		beef_output = `ps aux | grep beef`
-		@beef = beef_output =~ /beef.py/ ? true : false
+		@beef = `ps aux | grep beef` =~ /beef.py/ ? true : false
 	end
 
 	def show
