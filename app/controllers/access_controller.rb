@@ -34,8 +34,7 @@ class AccessController < ApplicationController
 		redirect_to(:action => 'login')
 
 		# clear cookies
-		session[:user_id] = nil
-		session[:username] = nil
+		session[:user_id], session[:username] = nil
 	end
 
 end
