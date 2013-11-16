@@ -32,13 +32,15 @@ class ReportsController < ApplicationController
 
 		# display password if it exists
 		passwd_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "www", "passwd.txt")
-		if File.exist?(passwd_location)
-			# read passwd file
-			@passwd = File.read(passwd_location)
-		else
-			@passwd = nil
+	
+		# Test if this nil is needed
+		@passwd = nil
+		begin
+			@passwd = Fileread(passwd_location) if File.exist?(passwd_location)
+		rescue IOError => e
+			# Handle this Brandon
 		end
-
+		
 		@location_object = []
 		@apache_data[:ip_addresses].each do |ip_address|
 			@location_object << Geokit::Geocoders::MultiGeocoder.geocode(ip_address).ll
@@ -61,11 +63,12 @@ class ReportsController < ApplicationController
 		@campaign = Campaign.find_by_id(params[:id])
 		@template = Template.find_by_id(@campaign.template_id)
 		passwd_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "www", "passwd.txt")
-		if File.exist?(passwd_location)
-			# read passwd file
-			@passwd = File.open(passwd_location, 'r')
-		else
-			@passwd = nil
+	
+		@passwd = nil
+		begin
+			@passwd = Fileread(passwd_location) if File.exist?(passwd_location)
+		rescue IOError => e
+			# Handle this Brandon
 		end
 	end
 
@@ -118,7 +121,7 @@ class ReportsController < ApplicationController
 
 	def download_logs
 		@campaign = Campaign.find_by_id(params[:id])
-		logfile_name = Rails.root.to_s + "/log/www-#{@campaign.campaign_settings.fqdn}-#{@campaign.id}-access.log"
+		logfile_name = "#{Rails.root.to_s}/log/www-#{@campaign.campaign_settings.fqdn}-#{@campaign.id}-access.log"
 
 		begin
 			# force browser to download file
@@ -153,12 +156,12 @@ class ReportsController < ApplicationController
 	end
 
 	def self.clear_apache_logs(campaign)
-		logfile_name = Rails.root.to_s + "/log/www-#{campaign.campaign_settings.fqdn}-#{campaign.id}-access.log"
+		logfile_name = "#{Rails.root.to_s}/log/www-#{campaign.campaign_settings.fqdn}-#{campaign.id}-access.log"
 
 		# clear apache log file
 		begin
 			File.open(logfile_name, 'w') {|file| file.truncate(0) }
-		rescue
+		rescue IOError => e
 			return false
 		end
 	end
