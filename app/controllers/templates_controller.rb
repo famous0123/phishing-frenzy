@@ -44,11 +44,15 @@ class TemplatesController < ApplicationController
 			render('new')
 			return
 		else
-			Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location), 0700)
-			Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'email'), 0700)
-			Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'www'), 0700)
-			File.new(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'email', 'email.txt'), 0700)
-			File.new(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'www', 'index.php'), 0700)
+			begin
+				Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location), 0700)
+				Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'email'), 0700)
+				Dir.mkdir(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'www'), 0700)
+				File.new(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'email', 'email.txt'), 0700)
+				File.new(File.join(Rails.root.to_s, 'public', 'templates', @template.location, 'www', 'index.php'), 0700)
+			rescue IOError => e
+				## Do stuff
+			end
 		end
 
 		if @template.save
@@ -107,6 +111,7 @@ class TemplatesController < ApplicationController
 		@template = Template.find_by_id(params[:id])
 
 		if folder_exists?(@template.location)
+			## Validate
 			FileUtils.rm_rf(File.join(Rails.root.to_s, 'public', 'templates', @template.location))
 		end
 
@@ -172,8 +177,12 @@ class TemplatesController < ApplicationController
 
 		# create yaml file
 		location = File.join(Rails.root.to_s, 'public', 'templates', @template.location)
-		File.open(File.join(location, 'backup.yaml'), "w+") do |f|
-			f.write(@template.to_yaml)
+		begin
+			File.open(File.join(location, 'backup.yaml'), "w+") do |f|
+				f.write(@template.to_yaml)
+			end
+		rescue IOError => e
+			## Update later
 		end
 
 		download(location)		
@@ -190,9 +199,7 @@ class TemplatesController < ApplicationController
 			zipfile_name = File.join(location, 'backup.zip')
 
 			# if backup file exists, delete it before archiving
-			if File.exist?(zipfile_name)
-				File.delete(zipfile_name)
-			end
+			File.delete(zipfile_name) if File.exist?(zipfile_name)
 
 			Zip::File.open(zipfile_name, Zip::File::CREATE) do |zipfile|
 				Dir[File.join(location, '**', '**')].each do |file|
@@ -228,6 +235,7 @@ class TemplatesController < ApplicationController
 			file.write(uploaded_io.read)
   		end
 
+		## Write logic to ensure YML file exists
 		# unzip uploaded template archive
 		yaml_file = Zip::File.open(zip_upload_location).find { |file| file.name =~ /\.yaml$/ }
 		template = YAML.load(yaml_file.get_input_stream.read)
@@ -311,10 +319,10 @@ class TemplatesController < ApplicationController
 
 		email_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "email", "email.txt")
 		if File.exist?(email_location)
-			@errors << "[+] File exists"
+			@errors << "[+] File exists\n"
 			email_message = File.open(email_location, 'r')
 		else
-			@errors << "[-] Unable to Read #{email_location}"
+			@errors << "[-] Unable to Read #{email_location}\n"
 		end
 
 		# read email headers
@@ -352,7 +360,7 @@ class TemplatesController < ApplicationController
 			return
 		end
 
-		file_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "email", params[:filename])
+		file_location = File.join(Rails.root.to_s, "public", "templates", @template.location, "email", params[:filename])
 		FileUtils.rm(file_location)
 
 		flash[:notice] = "#{params[:filename]} Removed"
@@ -367,7 +375,7 @@ class TemplatesController < ApplicationController
 			return
 		end
 
-		file_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "www", params[:filename])
+		file_location = File.join(Rails.root.to_s, "public", "templates", @template.location, "www", params[:filename])
 
 		# write params[:file_content] out to a file
 		File.open(file_location, "w+") do |f|
@@ -386,7 +394,7 @@ class TemplatesController < ApplicationController
 			return
 		end
 
-		file_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "www", params[:filename])
+		file_location = File.join(Rails.root.to_s, "public", "templates", @template.location, "www", params[:filename])
 		FileUtils.rm(file_location)
 
 		flash[:notice] = "#{params[:filename]} Removed"
@@ -410,14 +418,14 @@ class TemplatesController < ApplicationController
 			return
 		end
 
-		file_location = File.join(Rails.root.to_s, "public", "templates", "#{@template.location}", "www", params[:filename])
+		file_location = File.join(Rails.root.to_s, "public", "templates", @template.location, "www", params[:filename])
 
 		begin
 			FileUtils.touch(file_location)
 			flash[:notice] = "File Created"
 			redirect_to(:controller => 'templates', :action => 'edit', :id => @template.id)
 		rescue => e
-			flash[:notice] = "#{e}"
+			flash[:notice] = e.message
 			redirect_to(:controller => 'templates', :action => 'edit', :id => @template.id)
 		end
 	end
